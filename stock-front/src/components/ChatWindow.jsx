@@ -7,7 +7,7 @@ import { sendMessage } from '../services/api.js';
 const WELCOME_MESSAGE = {
   id: 'welcome',
   role: 'bot',
-  content: "👋 Bienvenue dans l'**Assistant Stock Mandeme** !\n\nJe suis votre assistant intelligent de gestion de stock. Commencez par **uploader un fichier Excel** en haut, puis posez-moi vos questions.\n\nExemples :\n- *donne-moi l'article 10*\n- *CUMP de l'article 17*\n- *articles de la famille réseau*\n\nTapez **aide** pour voir toutes les commandes.",
+  content: "👋 Bienvenue dans l'**Assistant Stock Alia** !\n\nJe suis votre assistant intelligent de gestion de stock. Commencez par **uploader un fichier Excel** en haut, puis posez-moi vos questions.\n\nExemples :\n- *donne-moi l'article 10*\n- *CUMP de l'article 17*\n- *articles de la famille réseau*\n\nTapez **aide** pour voir toutes les commandes.",
   type: 'text',
   data: null,
 };
