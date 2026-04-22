@@ -282,7 +282,7 @@ def process_message(message):
 def handle_greeting():
     return {
         'type': 'text',
-        'message': ("👋 Bonjour ! Je suis votre assistant de gestion de stock.\n\n"
+        'message': ("👋 Bonjour ! Je suis Alia votre assistant de gestion de stock.\n\n"
                     "Vous pouvez me poser des questions comme :\n"
                     "• *donne-moi l'article 10*\n"
                     "• *quel est le CUMP de l'article 17*\n"
