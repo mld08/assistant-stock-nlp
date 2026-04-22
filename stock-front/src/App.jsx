@@ -38,7 +38,7 @@ function App() {
               <FiBox />
             </div>
             <div className="logo-text">
-              <h1>Mandeme Stock</h1>
+              <h1>SamaStock</h1>
               <span className="logo-subtitle">Assistant Intelligent</span>
             </div>
           </div>
