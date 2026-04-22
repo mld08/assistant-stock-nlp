@@ -322,6 +322,15 @@ def handle_help():
     }
 
 
+def normalize_article_id(val):
+    if val is None:
+        return ""
+    val_str = str(val).strip()
+    if val_str.endswith('.0'):
+        return val_str[:-2]
+    return val_str
+
+
 def handle_search_articles(message):
     numbers = extract_article_numbers(message)
     
@@ -344,25 +353,34 @@ def handle_search_articles(message):
             'data': None
         }
     
-    if not results:
-        articles_str = ', '.join(numbers)
-        return {
-            'type': 'text',
-            'message': f"😕 Aucun article trouvé pour le(s) numéro(s) : **{articles_str}**. Vérifiez les numéros et réessayez.",
-            'data': None
-        }
+    # Réorganiser les résultats selon l'ordre demandé et ajouter les vides pour les non-trouvés
+    results_map = {normalize_article_id(r.get('Article', '')): r for r in results}
+    ordered_results = []
+    not_found = []
     
-    found_ids = [str(r.get('Article', '')) for r in results]
-    not_found = [n for n in numbers if n not in found_ids]
+    for n in numbers:
+        if n in results_map:
+            ordered_results.append(results_map[n])
+        else:
+            not_found.append(n)
+            # Ajouter une ligne vide pour cet article
+            ordered_results.append({
+                'Article': n,
+                'Description': '— (Non trouvé) —',
+                'TOTAL': None,
+                'CUMP': None,
+                'FAS à appliquer': '—',
+                'Famille': '—'
+            })
     
-    msg = f"✅ Voici les résultats pour {len(results)} article(s) trouvé(s) :"
+    msg = f"✅ Voici les résultats pour les articles demandés :"
     if not_found:
-        msg += f"\n⚠️ Article(s) non trouvé(s) : {', '.join(not_found)}"
+        msg += f"\n⚠️ **Attention** : Les articles suivants n'existent pas dans la base : **{', '.join(not_found)}**"
     
     return {
         'type': 'table',
         'message': msg,
-        'data': results,
+        'data': ordered_results,
         'columns': ['Article', 'Description', 'TOTAL', 'CUMP', 'FAS à appliquer', 'Famille']
     }
 
@@ -389,17 +407,30 @@ def handle_get_cump(message):
             'data': None
         }
     
-    if not results:
-        return {
-            'type': 'text',
-            'message': f"😕 Aucun article trouvé pour le(s) numéro(s) : {', '.join(numbers)}",
-            'data': None
-        }
+    # Réorganiser les résultats selon l'ordre demandé et ajouter les vides
+    results_map = {normalize_article_id(r.get('Article', '')): r for r in results}
+    ordered_results = []
+    not_found = []
+    
+    for n in numbers:
+        if n in results_map:
+            ordered_results.append(results_map[n])
+        else:
+            not_found.append(n)
+            ordered_results.append({
+                'Article': n,
+                'Description': '— (Inconnu) —',
+                'CUMP': None
+            })
+    
+    msg = f"💰 CUMP pour les articles demandés :"
+    if not_found:
+        msg += f"\n⚠️ Articles non trouvés : {', '.join(not_found)}"
     
     return {
         'type': 'table',
-        'message': f"💰 CUMP pour {len(results)} article(s) :",
-        'data': results,
+        'message': msg,
+        'data': ordered_results,
         'columns': ['Article', 'Description', 'CUMP']
     }
 
@@ -426,17 +457,30 @@ def handle_get_total(message):
             'data': None
         }
     
-    if not results:
-        return {
-            'type': 'text',
-            'message': f"😕 Aucun article trouvé pour le(s) numéro(s) : {', '.join(numbers)}",
-            'data': None
-        }
+    # Réorganiser les résultats selon l'ordre demandé
+    results_map = {normalize_article_id(r.get('Article', '')): r for r in results}
+    ordered_results = []
+    not_found = []
     
+    for n in numbers:
+        if n in results_map:
+            ordered_results.append(results_map[n])
+        else:
+            not_found.append(n)
+            ordered_results.append({
+                'Article': n,
+                'Description': '— (Inconnu) —',
+                'TOTAL': None
+            })
+    
+    msg = f"📦 Stock total pour les articles demandés :"
+    if not_found:
+        msg += f"\n⚠️ Articles non trouvés : {', '.join(not_found)}"
+
     return {
         'type': 'table',
-        'message': f"📦 Stock total pour {len(results)} article(s) :",
-        'data': results,
+        'message': msg,
+        'data': ordered_results,
         'columns': ['Article', 'Description', 'TOTAL']
     }
 
@@ -463,17 +507,30 @@ def handle_get_fas(message):
             'data': None
         }
     
-    if not results:
-        return {
-            'type': 'text',
-            'message': f"😕 Aucun article trouvé pour le(s) numéro(s) : {', '.join(numbers)}",
-            'data': None
-        }
+    # Réorganiser les résultats selon l'ordre demandé
+    results_map = {normalize_article_id(r.get('Article', '')): r for r in results}
+    ordered_results = []
+    not_found = []
     
+    for n in numbers:
+        if n in results_map:
+            ordered_results.append(results_map[n])
+        else:
+            not_found.append(n)
+            ordered_results.append({
+                'Article': n,
+                'Description': '— (Inconnu) —',
+                'FAS à appliquer': '—'
+            })
+    
+    msg = f"📋 FAS pour les articles demandés :"
+    if not_found:
+        msg += f"\n⚠️ Articles non trouvés : {', '.join(not_found)}"
+
     return {
         'type': 'table',
-        'message': f"📋 FAS pour {len(results)} article(s) :",
-        'data': results,
+        'message': msg,
+        'data': ordered_results,
         'columns': ['Article', 'Description', 'FAS à appliquer']
     }
 
