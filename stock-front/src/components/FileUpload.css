@@ -1,0 +1,142 @@
+/* ============================================================
+   FileUpload Component Styles
+   Drag-and-drop zone with state transitions
+   ============================================================ */
+
+.file-upload-container {
+  padding: 0 20px;
+}
+
+.file-upload-zone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border: 1.5px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  outline: none;
+}
+
+.file-upload-zone:hover,
+.file-upload-zone:focus-visible {
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.06);
+  box-shadow: var(--shadow-glow);
+}
+
+.file-upload-zone.dragging {
+  border-color: var(--accent-secondary);
+  background: rgba(139, 92, 246, 0.1);
+  border-style: solid;
+  transform: scale(1.01);
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+}
+
+.file-upload-zone.uploading {
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.06);
+  cursor: wait;
+}
+
+.file-upload-zone.success {
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.file-upload-zone.error {
+  border-color: var(--error);
+  background: var(--error-bg);
+}
+
+/* Icons */
+.upload-icon {
+  font-size: 1.4rem;
+  color: var(--text-muted);
+  transition: all var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.file-upload-zone:hover .upload-icon,
+.upload-icon.dragging {
+  color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.upload-icon.spinning {
+  color: var(--accent-primary);
+  animation: iconSpin 1s linear infinite;
+}
+
+.upload-icon.success {
+  color: var(--success);
+}
+
+.upload-icon.error {
+  color: var(--error);
+}
+
+@keyframes iconSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Text */
+.upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upload-primary {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.upload-secondary {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.upload-status {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.upload-status.success {
+  color: var(--success);
+}
+
+.upload-status.error {
+  color: var(--error);
+}
+
+.upload-status.uploading {
+  color: var(--accent-primary);
+}
+
+/* Hidden input */
+.file-input-hidden {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .file-upload-container {
+    padding: 0 12px;
+  }
+
+  .file-upload-zone {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .upload-primary {
+    font-size: 0.8rem;
+  }
+}
