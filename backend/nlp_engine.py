@@ -120,9 +120,8 @@ def detect_intent(message):
             if re.search(pattern, msg_lower):
                 return intent
     
-    # Si des numéros sont présents, supposer recherche d'articles
-    numbers = re.findall(r'\d+', msg_lower)
-    if numbers:
+    # Si le message semble contenir uniquement des numéros et des séparateurs basiques
+    if re.fullmatch(r'[\d\s,;\-&]+', msg_lower):
         return 'search_articles'
     
     return 'unknown'
@@ -187,18 +186,22 @@ def extract_search_term(message):
         str: Terme de recherche
     """
     msg_lower = message.lower().strip()
+    msg_clean = msg_lower.replace("'", " ").replace('"', ' ').replace(':', ' ').replace('à', 'a')
     
     # Retirer les mots-clés connus pour isoler le terme de recherche
-    stop_words = [
+    stop_words = {
         'cherche', 'chercher', 'recherche', 'rechercher', 'trouve', 'trouver',
-        'contient', 'contenant', 'avec', 'description', 'désignation',
-        'article', 'articles', 'le', 'la', 'les', 'un', 'une', 'des',
-        'dans', 'qui', 'moi', 'donne', 'affiche', 'montre', 'voir',
-        'je', 'veux', 'peux', 'tu', 'me', 'donnez', 's\'il', 'vous', 'plait',
-    ]
+        'contient', 'contenant', 'avec', 'description', 'désignation', 'designation',
+        'article', 'articles', 'le', 'la', 'les', 'l', 'un', 'une', 'des', 'de', 'du', 'd',
+        'dans', 'qui', 'que', 'quoi', 'dont', 'ou',
+        'moi', 'donne', 'affiche', 'montre', 'voir',
+        'je', 'veux', 'peux', 'tu', 'me', 'donnez', 's', 'il', 'vous', 'plait',
+        'correspondant', 'pour', 'sur', 'est', 'sont', 'et', 'au', 'aux', 'ce', 'cet', 'cette',
+        'ces', 'mon', 'ton', 'son', 'notre', 'votre', 'leur', 'correspond', 'a'
+    }
     
-    words = msg_lower.split()
-    filtered = [w for w in words if w not in stop_words and len(w) > 2]
+    words = msg_clean.split()
+    filtered = [w for w in words if w not in stop_words and len(w) >= 2]
     
     return ' '.join(filtered) if filtered else None
 
@@ -579,6 +582,53 @@ def handle_search_family(message):
     }
 
 
+def search_catalog(words):
+    if not words:
+        return []
+        
+    conditions = []
+    params = []
+    for w in words:
+        conditions.append('LOWER(Description) LIKE ?')
+        params.append(f'%{w.lower()}%')
+        
+    # 1. Modèle strict (AND)
+    where_clause = ' AND '.join(conditions)
+    query = f'SELECT Article, Description, TOTAL, CUMP, "FAS à appliquer", Famille FROM stock_actif WHERE {where_clause} LIMIT 20'
+    
+    try:
+        results = execute_query(query, params)
+        if results:
+            return results
+    except Exception:
+        pass
+        
+    # 2. Modèle souple (OR) + Scoring
+    where_clause_or = ' OR '.join(conditions)
+    query_or = f'SELECT Article, Description, TOTAL, CUMP, "FAS à appliquer", Famille FROM stock_actif WHERE {where_clause_or}'
+    
+    try:
+        results = execute_query(query_or, params)
+        if results:
+            def score_func(r):
+                d = str(r.get('Description', '')).lower()
+                a = str(r.get('Article', '')).lower()
+                score = 0
+                for w in words:
+                    wl = w.lower()
+                    if wl in d: score += 1
+                    if wl in a: score += 2  # Forte pondération si match ID
+                return score
+            
+            scored_results = [r for r in results if score_func(r) > 0]
+            scored_results.sort(key=score_func, reverse=True)
+            return scored_results[:20]
+    except Exception:
+        pass
+        
+    return []
+
+
 def handle_search_description(message):
     term = extract_search_term(message)
     
@@ -589,27 +639,19 @@ def handle_search_description(message):
             'data': None
         }
     
-    query = 'SELECT Article, Description, TOTAL, CUMP, "FAS à appliquer", Famille FROM stock_actif WHERE LOWER(Description) LIKE ?'
-    
-    try:
-        results = execute_query(query, [f'%{term.lower()}%'])
-    except Exception as e:
-        return {
-            'type': 'text',
-            'message': f"❌ Erreur : {str(e)}",
-            'data': None
-        }
+    words = [w for w in term.split() if w]
+    results = search_catalog(words)
     
     if not results:
         return {
             'type': 'text',
-            'message': f"😕 Aucun article trouvé contenant **{term}** dans la description.",
+            'message': f"😕 Aucun article trouvé pour la recherche : **{term}**.",
             'data': None
         }
     
     return {
         'type': 'table',
-        'message': f"🔎 {len(results)} article(s) trouvé(s) contenant **{term}** :",
+        'message': f"🔎 {len(results)} résultat(s) pertinent(s) priorisé(s) pour **{term}** :",
         'data': results,
         'columns': ['Article', 'Description', 'TOTAL', 'CUMP', 'FAS à appliquer', 'Famille']
     }
@@ -711,19 +753,20 @@ def handle_list_families():
 def handle_unknown(message):
     # Dernière tentative : chercher si le message contient un mot qui matche une description
     term = extract_search_term(message)
-    if term and len(term) >= 3:
-        query = 'SELECT Article, Description, TOTAL, CUMP, "FAS à appliquer", Famille FROM stock_actif WHERE LOWER(Description) LIKE ? LIMIT 20'
-        try:
-            results = execute_query(query, [f'%{term.lower()}%'])
-            if results:
-                return {
-                    'type': 'table',
-                    'message': f"🔎 J'ai cherché **{term}** dans les descriptions et trouvé {len(results)} résultat(s) :",
-                    'data': results,
-                    'columns': ['Article', 'Description', 'TOTAL', 'CUMP', 'FAS à appliquer', 'Famille']
-                }
-        except Exception:
-            pass
+    if not term:
+        term = message.strip()
+        
+    if term and len(term) >= 2:
+        words = [w for w in term.split() if len(w) >= 2]
+        results = search_catalog(words)
+        
+        if results:
+            return {
+                'type': 'table',
+                'message': f"🔎 J'ai cherché **{term}** dans le catalogue et trouvé {len(results)} résultat(s) pertinent(s) :",
+                'data': results,
+                'columns': ['Article', 'Description', 'TOTAL', 'CUMP', 'FAS à appliquer', 'Famille']
+            }
     
     return {
         'type': 'text',
