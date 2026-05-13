@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: assistant-stock-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./database:/app/database
+      - ./backend/uploads:/app/uploads
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    restart: always
+
+  frontend:
+    build: ./stock-front
+    container_name: assistant-stock-frontend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=http://localhost:5000 # À adapter en production avec l'IP du serveur
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  database_data:
