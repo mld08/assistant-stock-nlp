@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  backend:
+  api:
     build: ./backend
     container_name: assistant-stock-backend
     ports:
@@ -14,16 +14,25 @@ services:
       - PYTHONUNBUFFERED=1
     restart: always
 
-  frontend:
-    build: ./stock-front
-    container_name: assistant-stock-frontend
+  nginx:
+    image: nginx:alpine
+    restart: always
     ports:
       - "80:80"
-    environment:
-      - VITE_API_URL=http://localhost:5000 # À adapter en production avec l'IP du serveur
-    depends_on:
-      - backend
-    restart: always
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d 
+
+  # frontend:
+  #   build: ./stock-front
+  #   container_name: assistant-stock-frontend
+  #   ports:
+  #     - "80:80"
+  #   environment:
+  #     - VITE_API_URL=http://localhost:5000 # À adapter en production avec l'IP du serveur
+  #   depends_on:
+  #     - backend
+  #   restart: always
 
 volumes:
   database_data:
